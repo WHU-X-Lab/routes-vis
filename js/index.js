@@ -29,14 +29,16 @@ function initGUI(app) {
     gui.add(app, "useTexture")
         .name("使用纹理")
         .onChange(redraw)
-    gui.add(app,"threshold", 1, 10).name("颜色阈值").onChange(redraw)
+    gui.add(app, "threshold", 0.2, 10)
+        .name("颜色阈值")
+        .onChange(redraw)
     gui.add(opt, "layer", {
         默认: "default",
         框架: "frame",
         颜色纹理: "color",
         法向纹理: "normal",
         核密度纹理: "kernel",
-        最终结果: "final"
+        最终结果: "final",
     })
         .name("选择图层")
         .onChange(function() {

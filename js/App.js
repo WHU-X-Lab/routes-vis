@@ -14,18 +14,18 @@ class Controller {
     transferCoord(coord) {
         return [
             coord[0] * this.zoom + this.offsetX,
-            coord[1] * this.zoom + this.offsetY
+            coord[1] * this.zoom + this.offsetY,
         ]
     }
 
     initEvents() {
         let container = document.getElementById("canvas")
         let vm = this
-        container.addEventListener("wheel", function(event) {
+        container.addEventListener("wheel", function (event) {
             let canvasWidth = gl.canvas.width / 2
             let canvasHeight = gl.canvas.height / 2
             vm.zoom *=
-                event.wheelDelta == 120 ? vm.scaleFactor : 1 / vm.scaleFactor
+                event.wheelDelta > 0 ? vm.scaleFactor : 1 / vm.scaleFactor
 
             // vm.offsetX -= (event.offsetX / canvasWidth - 0.5) * vm.zoom
             // vm.offsetY -= (0.5 - event.offsetY / canvasHeight) * vm.zoom
@@ -34,10 +34,10 @@ class Controller {
             vm.app.transferCoord()
             vm.app.drawScreen()
         })
-        container.addEventListener("mousedown", function(event) {
+        container.addEventListener("mousedown", function (event) {
             vm.startCoord = [event.clientX, event.clientY]
         })
-        container.addEventListener("mouseup", function(event) {
+        container.addEventListener("mouseup", function (event) {
             vm.endCoord = [event.clientX, event.clientY]
 
             let canvasWidth = gl.canvas.width
@@ -54,7 +54,7 @@ class Controller {
     }
 }
 
-var App = function() {
+var App = function () {
     this.r = 20
     this.trackNum = 5
     this.trackLen = 5
@@ -83,7 +83,7 @@ var App = function() {
     this.initBuffer()
     this.readData()
 }
-App.prototype.initProgram = function() {
+App.prototype.initProgram = function () {
     this.pt_program = createProgram(gl, V_pt_shader, F_pt_shader)
     this.line_program = createProgram(gl, V_line_shader, F_line_shader)
     this.line_program2 = createProgram(gl, V_line_shader, F_line_shader)
@@ -93,7 +93,7 @@ App.prototype.initProgram = function() {
     this.kernel_program = createProgram(gl, V_kernel_shader, F_kernel_shader)
     this.result_program = createProgram(gl, V_result_shader, F_result_shader)
 }
-App.prototype.initBuffer = function() {
+App.prototype.initBuffer = function () {
     // 两个密度纹理（用两个来实现帧缓冲）
     this.screenTexture = createQuadTexture(gl)
     this.backgroundTexture = createQuadTexture(gl)
@@ -115,15 +115,15 @@ App.prototype.initBuffer = function() {
     bindTexture(gl, this.screenTexture2, 5) // <screenTexture2>     -> texture5
     bindTexture(gl, this.backgroundTexture2, 6) // <backgroundTexture2>     -> texture6
 }
-App.prototype.initLight = function() {
+App.prototype.initLight = function () {
     this.lightDirection = new Vector3([
         this.lightDirectionX,
         this.lightDirectionY,
-        this.lightDirectionZ
+        this.lightDirectionZ,
     ])
     this.lightDirection.normalize()
 }
-App.prototype.readData = function() {
+App.prototype.readData = function () {
     this.tracks = []
     this.oriTracks = []
     if (this.rndData) {
@@ -142,15 +142,25 @@ App.prototype.readData = function() {
     } else {
         let vm = this
         axios
-            .get("../assets/data2.json")
-            .then(data => {
-                console.log(data)
-                for (let i = 0; i < data.data.length; i += 2) {
-                    vm.tracks.push([
-                        [data.data[i].LON / 180, data.data[i].LAT / 90],
-                        [data.data[i + 1].LON / 180, data.data[i + 1].LAT / 90]
-                    ])
+            .get("./assets/flights.json")
+            .then(({ data }) => {
+                // for (let i = 0; i < data.data.length; i += 2) {
+                //     vm.tracks.push([
+                //         [data.data[i].LON / 180, data.data[i].LAT / 90],
+                //         [data.data[i + 1].LON / 180, data.data[i + 1].LAT / 90],
+                //     ])
+                // }
+                function getAirportCoord(idx) {
+                    return [data.airports[idx][3], data.airports[idx][4]]
                 }
+                vm.oriTracks = vm.tracks = data.routes
+                    .slice(0, 100)
+                    .map(function (airline) {
+                        return [
+                            transCoord(getAirportCoord(airline[1])),
+                            transCoord(getAirportCoord(airline[2])),
+                        ]
+                    })
                 // vm.tracks = data.data.map(item => [
                 //     item.LON / 180,
                 //     item.LAT / 90
@@ -159,10 +169,9 @@ App.prototype.readData = function() {
                 //     transCoord(geo.coordinates[0][1]),
                 //     transCoord(geo.coordinates[0][2])
                 // ])
-                vm.oriTracks = vm.tracks.slice(0, 100)
                 vm.transferCoord()
             })
-            .catch(err => console.log(err))
+            .catch((err) => console.log(err))
 
         function transCoord(coord) {
             return [coord[0] / 180, coord[1] / 90]
@@ -173,24 +182,24 @@ App.prototype.readData = function() {
         return Math.random() * (max - min) + min
     }
 }
-App.prototype.transferCoord = function() {
+App.prototype.transferCoord = function () {
     console.log(this.oriTracks)
     let controller = this.controller
-    this.tracks = this.oriTracks.map(track => {
-        return track.map(coord => {
+    this.tracks = this.oriTracks.map((track) => {
+        return track.map((coord) => {
             return controller.transferCoord(coord)
         })
     })
     let a = 0
 }
-App.prototype.drawPoints = function() {
+App.prototype.drawPoints = function () {
     for (var i = 0; i < this.tracks.length; i++) {
         for (var j = 0; j < this.tracks[i].length - 1; j++) {
             this.drawPoint(this.tracks[i][j], this.tracks[i][j + 1])
         }
     }
 }
-App.prototype.drawPoint = function(pt1, pt2) {
+App.prototype.drawPoint = function (pt1, pt2) {
     gl.useProgram(this.pt_program.program)
     var vBuffer = createBuffer(
         gl,
@@ -200,7 +209,7 @@ App.prototype.drawPoint = function(pt1, pt2) {
     gl.drawArrays(gl.LINES, 0, 2)
     gl.drawArrays(gl.POINTS, 0, 2)
 }
-App.prototype.drawScreen = function() {
+App.prototype.drawScreen = function () {
     this.drawLines()
     this.initLight()
 
@@ -286,14 +295,14 @@ App.prototype.drawScreen = function() {
         clearTexture(gl, this.colorTexture)
     }
 }
-App.prototype.drawLines = function() {
+App.prototype.drawLines = function () {
     for (var i = 0; i < this.tracks.length; i++) {
         for (var j = 0; j < this.tracks[i].length - 1; j++) {
             this.drawLine(this.tracks[i][j], this.tracks[i][j + 1])
         }
     }
 }
-App.prototype.drawLine = function(pt1, pt2) {
+App.prototype.drawLine = function (pt1, pt2) {
     function toRealCoord(pt) {
         let width = gl.canvas.width
         let height = gl.canvas.height
@@ -384,7 +393,7 @@ App.prototype.drawLine = function(pt1, pt2) {
     }
 }
 // 将给定纹理绘制到屏幕上（或当前缓冲区内）
-App.prototype.drawTexture = function(inputTextureIndex) {
+App.prototype.drawTexture = function (inputTextureIndex) {
     // console.log("draw texture" + inputTextureIndex)
     var program = this.draw_program
     gl.useProgram(program.program)

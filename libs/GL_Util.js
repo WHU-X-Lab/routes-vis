@@ -288,7 +288,7 @@ function getGL(window, opt) {
     var preserveDrawingBuffer = option.preserveDrawingBuffer || false
 
     var gl = (window.gl = canvas.getContext("webgl", {
-        preserveDrawingBuffer: preserveDrawingBuffer
+        preserveDrawingBuffer: preserveDrawingBuffer,
     }))
     gl.canvas = canvas
     if (!gl) {
@@ -316,17 +316,13 @@ function getGL(window, opt) {
  * clear GL's buffer with specified color
  * @method clearGL
  * @param  {context} gl core handle of webGL
- * @param  {float} r    color.r [default: 1.0]
- * @param  {float} g    color.g [default: 1.0]
- * @param  {float} b    color.b [default: 1.0]
- * @param  {float} a    color.a [default: 1.0]
+ * @param  {float} r    color.r [default: 0.0]
+ * @param  {float} g    color.g [default: 0.0]
+ * @param  {float} b    color.b [default: 0.0]
+ * @param  {float} a    color.a [default: 0.0]
  */
-function clearGL(gl, r, g, b, a) {
-    var R = r || 1.0
-    var G = g || 1.0
-    var B = b || 1.0
-    var A = a || 1.0
-    gl.clearColor(R, G, B, A)
+function clearGL(gl) {
+    gl.clearColor(1, 1, 1, 1)
     gl.clear(gl.COLOR_BUFFER_BIT)
 }
 
@@ -336,18 +332,10 @@ function clearGL(gl, r, g, b, a) {
  * clear a texture with specified color
  * @param  {context} gl         core handle of webGL
  * @param  {texture} texture    target texture
- * @param  {float}   r          color.r [default: 1.0]
- * @param  {float}   g          color.g [default: 1.0]
- * @param  {float}   b          color.b [default: 1.0]
- * @param  {float}   a          color.a [default: 1.0]
  */
-function clearTexture(gl, texture, r, g, b, a) {
-    var R = r || 1.0
-    var G = g || 1.0
-    var B = b || 1.0
-    var A = a || 1.0
+function clearTexture(gl, texture) {
     gl.framebuffer.enable(texture)
-    clearGL(gl, r, g, b, a)
+    clearGL(gl)
     gl.framebuffer.disable()
 }
 
